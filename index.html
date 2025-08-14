@@ -28,7 +28,7 @@
     } else {
       document.getElementById('sheet-title').textContent = `시트: ${sheetName}`;
 
-      fetch('meraki-api-index.xlsx')
+      fetch('meraki-api-index-sorted.xlsx') 
         .then(res => res.arrayBuffer())
         .then(buffer => {
           const workbook = XLSX.read(buffer, { type: 'array' });

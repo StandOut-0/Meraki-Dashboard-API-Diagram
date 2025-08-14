@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta charset="UTF-8">
+<title>Meraki API Sheet Viewer</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<style>
+  table { border-collapse: collapse; margin-top: 10px; }
+  td, th { border: 1px solid #999; padding: 4px 8px; }
+</style>
+</head>
+<body>
+<h2>Meraki API Sheet Viewer</h2>
+
+<!-- CSV 가공/다운로드 버튼 -->
+<button id="process-btn">CSV 분류 후 다운로드 및 불러오기</button>
+
+<!-- 숨겨진 파일 입력 -->
+<input type="file" id="file-input" accept=".csv,.xlsx" style="display:none" />
+<div id="sheet-container"></div>
+
+<script>
+const PATH_GROUPS = [
+  "administered",
+  "administered/identities/me",
+  "devices",
+  "devices/{serial}/appliance/dhcp/subnets",
+  "networks/{networkId}/alerts/",
+  "organizations/{organizationId}/appliance",
+  "organizations/{organizationId}/wirelessController"
+];
+
+const NAME_MAP = {
+  "organizations": "orgs",
+  "organization": "org",
+  "wirelessController": "wirelessCtrl",
+  "appliance": "appl",
+  "identities": "ids",
+  "administered": "admin",
+  "devices": "dev",
+  "alerts": "alrt",
+  "availabilities": "avail"
+};
+
+function sanitizeSheetName(name, existingNames) {
+  let base = name.replace(/\{[^}]*\}/g, "");
+  let parts = base.split("/")
+    .map(part => NAME_MAP[part] || part)
+    .filter(p => p.length > 0);
+  base = parts.join("-").replace(/[:\\?*\[\]]/g, "-").replace(/\s+/g, "_");
+  let finalName = base.substring(0,31);
+  if (existingNames.has(finalName)) {
+    let i = 1; while (existingNames.has(`${finalName}_${i}`)) i++;
+    finalName = `${finalName}_${i}`;
+  }
+  existingNames.add(finalName);
+  return finalName;
+}
+
+// ================= 파일 다운로드 + 자동 불러오기 =================
+document.getElementById("process-btn").addEventListener("click", async () => {
+  try {
+    const res = await fetch("meraki-api-index.csv");
+    const text = await res.text();
+    const workbook = XLSX.read(text, { type:"string" });
+
+    const firstSheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[firstSheetName];
+    const data = XLSX.utils.sheet_to_json(sheet, { header:1 });
+    const header = data[0], rows = data.slice(1);
+
+    const pathColIndex = header.findIndex(h => String(h).trim().toLowerCase() === "path");
+    if(pathColIndex === -1){ alert("⚠ 'path' 컬럼을 찾을 수 없습니다."); return; }
+
+    const newWb = XLSX.utils.book_new();
+    const usedSheetNames = new Set();
+
+    PATH_GROUPS.forEach(groupPath=>{
+      const filtered = rows.filter(r=>r[pathColIndex] && String(r[pathColIndex]).includes(groupPath));
+      if(filtered.length>0){
+        const ws = XLSX.utils.aoa_to_sheet([header,...filtered]);
+        const safeName = sanitizeSheetName(groupPath, usedSheetNames);
+        XLSX.utils.book_append_sheet(newWb, ws, safeName);
+      }
+    });
+
+    // etc 시트
+    const etcRows = rows.filter(r=>{
+      const cellValue = r[pathColIndex]?String(r[pathColIndex]):"";
+      return !PATH_GROUPS.some(g=>cellValue.includes(g));
+    });
+    if(etcRows.length>0){
+      const wsEtc = XLSX.utils.aoa_to_sheet([header,...etcRows]);
+      XLSX.utils.book_append_sheet(newWb, wsEtc, "etc");
+    }
+
+// 다운로드 후 바로 불러오기
+const wbout = XLSX.write(newWb, { bookType:"xlsx", type:"array" });
+const blob = new Blob([wbout], { type: "application/octet-stream" });
+const url = URL.createObjectURL(blob);
+const a = document.createElement("a");
+a.href = url;
+a.download = "meraki-api-index-sorted.xlsx";
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+
+    // 자동으로 파일 입력창 열기
+    const fileInput = document.getElementById("file-input");
+    fileInput.onchange = async (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const arrayBuffer = await file.arrayBuffer();
+      const wbSelected = XLSX.read(arrayBuffer,{type:"array"});
+      const sheetName = getSheetFromURL() || wbSelected.SheetNames[0];
+      const sheetToDisplay = wbSelected.Sheets[sheetName];
+      displaySheet(sheetToDisplay);
+    };
+    fileInput.click();
+
+  } catch(err){
+    console.error(err);
+    alert("처리 중 오류 발생: "+err);
+  }
+});
+
+// ================= URL 쿼리 =================
+function getSheetFromURL(){
+  const params = new URLSearchParams(window.location.search);
+  return params.get("sheet");
+}
+
+function displaySheet(sheet){
+  const container = document.getElementById("sheet-container");
+  container.innerHTML="";
+  const data = XLSX.utils.sheet_to_json(sheet,{header:1});
+  if(data.length===0) return;
+  const table = document.createElement("table");
+  data.forEach(row=>{
+    const tr = document.createElement("tr");
+    row.forEach(cell=>{
+      const td = document.createElement("td");
+      td.textContent = cell;
+      tr.appendChild(td);
+    });
+    table.appendChild(tr);
+  });
+  container.appendChild(table);
+}
+</script>
+</body>
+</html>
