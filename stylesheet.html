@@ -30,12 +30,38 @@
       <div class="accordion" id="accordionPanelsStayOpenExample">
       </div>
     </div>
+
   </main>
 
   
-  <p id="sheet-title">시트 내용 보기</p>
+  <p id="sheet-title" class="text-end">시트 내용 보기</p>
   <div id="sheet-content">로딩 중...</div>
 
+
+   <div class="mt-5 p-5 bg-light">
+      <h2>text</h2>
+
+      <p class="text-start">Start aligned text on all viewport sizes.</p>
+      <p class="text-center">Center aligned text on all viewport sizes.</p>
+      <p class="text-end">End aligned text on all viewport sizes.</p>
+
+      <p class="text-lowercase">Lowercased text.</p>
+      <p class="text-uppercase">Uppercased text.</p>
+      <p class="text-capitalize">CapiTaliZed text.</p>
+
+      <p class="fs-1">.fs-1 text</p>
+      <p class="fs-2">.fs-2 text</p>
+      <p class="fs-3">.fs-3 text</p>
+      <p class="fs-4">.fs-4 text</p>
+      <p class="fs-5">.fs-5 text</p>
+
+      <p class="fw-normal">Normal weight text.</p>
+      <p class="fst-italic">Italic text.</p>
+      Secondary body text with a <a href="#" class="text-reset">reset link</a>.
+
+      <p class="lh-base">This is a long paragraph written to show how the line-height of an element is affected by our utilities. Classes are applied to the element itself or sometimes the parent element. These classes can be customized as needed with our utility API.</p>
+      
+    </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
   
@@ -134,6 +160,7 @@
           else if (releaseStage.toLowerCase() === "beta") stageClass = "text-bg-warning";
           else if (releaseStage.toLowerCase() === "deprecated") stageClass = "text-bg-danger";
 
+
           // method 색상 클래스 결정
           let methodColor = "";
           switch (method.toLowerCase()) {
@@ -144,19 +171,21 @@
             default: methodColor = "text-secondary";
           }
 
-          // badge와 method span 생성
+          // releaseStage
           const badge = document.createElement("span");
-          badge.className = `badge rounded-pill ${stageClass} me-2`;
+          badge.className = `badge rounded-pill ${stageClass} me-2 text-uppercase`;
           badge.textContent = releaseStage;
 
+          // method
           const methodSpan = document.createElement("span");
-          methodSpan.className = `${methodColor} fw-bold me-2`;
+          methodSpan.className = `${methodColor} me-2 text-uppercase`;
           methodSpan.textContent = method;
 
+          // apiDocsUrl
           const link = document.createElement("a");
           link.href = apiDocsUrl;
           link.target = "_blank";
-          link.className = "ms-2";
+          link.className = "ms-2 text-reset text-decoration-none";
           link.title = "API Docs";
           link.innerHTML = '🔗';
           link.style.pointerEvents = "auto";
@@ -175,9 +204,6 @@
           button.appendChild(link);
 
           h2.appendChild(button);
-
-
-
 
 
           // accordion-body
