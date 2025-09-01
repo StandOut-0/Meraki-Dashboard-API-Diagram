@@ -115,7 +115,24 @@
         // 헤더(첫 행)와 실제 데이터 분리
         const headers = data[0];
         const rows = data.slice(1);
+        
+        // summary 전체 추출
+        const summaryIdx = headers.indexOf("summary");
+        const summaries = rows.map(row => row[summaryIdx] || "-");
 
+        // 한 번에 번역 요청 (비공식 Google Translate ajax API)
+        async function unofficialBatchTranslate(textArr, target = "ko") {
+          const joined = textArr.map(t => t.replace(/\n/g, " ")).join("\n");
+          const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${target}&dt=t&q=${encodeURIComponent(joined)}`;
+          const res = await fetch(url);
+          if (!res.ok) return textArr.map(_ => "번역 실패");
+          const data = await res.json();
+          // 줄 단위로 번역 결과 분리
+          return data[0].map(arr => arr[0]);
+        }
+
+
+        unofficialBatchTranslate(summaries, "ko").then(translatedArr => {
         // 아코디언 컨테이너 생성
         const accordion = document.createElement('div');
         accordion.className = "accordion";
@@ -129,14 +146,12 @@
           const method = row[headers.indexOf("method")] || "";
           const path   = row[headers.indexOf("path")] || "";
           const apiDocsUrl     = row[headers.indexOf("apiDocsUrl")] || "";
+          const summary = row[headers.indexOf("summary")] || "";
           // 주요 열 값들 추출 - end
           
+
           const item = document.createElement("div");
           item.className = "accordion-item";
-
-
-
-
 
           // accordion-header
           const headerId = `heading${index}`;
@@ -217,12 +232,64 @@
           body.className = "accordion-body";
 
           // 나머지 열 값들 테이블로 넣기
+          // ...existing code...
+          const operationId = row[headers.indexOf("operationId")] || "-";
+          // const summary = row[headers.indexOf("summary")] || "-";
+          const oauthScopes = row[headers.indexOf("oauthScopes")] || "-";
+          const tags = row[headers.indexOf("tags")] || "-";
+          const releaseStageVal = row[headers.indexOf("releaseStage")] || "-";
+          const apiDocsUrlVal = row[headers.indexOf("apiDocsUrl")] || "-";
+          const pythonOperation = row[headers.indexOf("pythonOperation")] || "-";
+
+          // summary 번역 (실제 번역 API 없이 예시)
+          function translate(text) {
+            // 실제 번역이 없으면 안내만
+            return "번역 없음";
+          }
+
+          // p 태그로 추가 (순서대로)
+          const pOperationId = document.createElement("p");
+          pOperationId.innerHTML = `<strong>operationId:</strong> ${operationId}`;
+          body.appendChild(pOperationId);
+
+            // summary 번역 결과 사용
+          const pSummary = document.createElement("p");
+          pSummary.innerHTML = `<strong>summary:</strong> ${summary}<br><span class="text-secondary">${translatedArr[index] || "번역 없음"}</span>`;
+          body.appendChild(pSummary);
+
+          const pOauthScopes = document.createElement("p");
+          pOauthScopes.innerHTML = `<strong>oauthScopes:</strong> ${oauthScopes}`;
+          body.appendChild(pOauthScopes);
+
+          const pTags = document.createElement("p");
+          pTags.innerHTML = `<strong>tags:</strong> ${tags}`;
+          body.appendChild(pTags);
+
+          const pReleaseStage = document.createElement("p");
+          pReleaseStage.innerHTML = `<strong>releaseStage:</strong> ${releaseStageVal}`;
+          body.appendChild(pReleaseStage);
+
+          const pApiDocsUrl = document.createElement("p");
+          if (apiDocsUrlVal && apiDocsUrlVal !== "-") {
+            pApiDocsUrl.innerHTML = `<strong>apiDocsUrl:</strong> <a href="${apiDocsUrlVal}" target="_blank">${apiDocsUrlVal}</a>`;
+          } else {
+            pApiDocsUrl.innerHTML = `<strong>apiDocsUrl:</strong> -`;
+          }
+          body.appendChild(pApiDocsUrl);
+
+          const pPythonOperation = document.createElement("p");
+          pPythonOperation.innerHTML = `<strong>pythonOperation:</strong> ${pythonOperation}`;
+          body.appendChild(pPythonOperation);
+
+          // Params만 table로
           const table = document.createElement("table");
           table.className = "table table-sm";
           const tbody = document.createElement("tbody");
 
           headers.forEach((colName, colIndex) => {
-            if (colName.toLowerCase() === "method" || colName.toLowerCase() === "path") return;
+            if (
+              ["method", "path", "operationid", "summary", "oauthscopes", "tags", "releasestage", "apidocsurl", "pythonoperation"].includes(colName.toLowerCase())
+            ) return;
             const tr = document.createElement("tr");
             const tdKey = document.createElement("td");
             tdKey.textContent = colName;
@@ -234,8 +301,12 @@
             tbody.appendChild(tr);
           });
 
-          table.appendChild(tbody);
-          body.appendChild(table);
+          if (tbody.childNodes.length > 0) {
+            table.appendChild(tbody);
+            body.appendChild(table);
+          }
+          // ...existing code...
+
           collapseDiv.appendChild(body);
 
           // 아이템 조립
@@ -249,6 +320,7 @@
         const container = document.getElementById('sheet-content');
         container.innerHTML = '';
         container.appendChild(accordion);
+         });
       })
       .catch(err => {
         document.getElementById('sheet-content').textContent = `❗ 엑셀 파일 로드 오류: ${err}`;
