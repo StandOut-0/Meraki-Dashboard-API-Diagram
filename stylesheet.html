@@ -98,6 +98,8 @@
         rows.forEach((row, index) => {
           if (!row || row.length === 0) return; // 빈 행 skip
 
+          // 주요 열 값들 추출 - start
+          const releaseStage = row[headers.indexOf("releaseStage")] || "";
           const method = row[headers.indexOf("method")] || "";
           const path   = row[headers.indexOf("path")] || "";
 
@@ -120,9 +122,25 @@
           button.setAttribute("aria-expanded", "false");
           button.setAttribute("aria-controls", collapseId);
 
-          // method + path
-          button.textContent = `${method} ${path}`;
 
+          // releaseStage badge 클래스 결정
+          let stageClass = "text-bg-primary";
+          if (releaseStage.toLowerCase() === "ga") stageClass = "text-bg-success";
+          else if (releaseStage.toLowerCase() === "beta") stageClass = "text-bg-warning";
+          else if (releaseStage.toLowerCase() === "deprecated") stageClass = "text-bg-danger";
+
+
+          // badge와 method span 생성
+          const badge = document.createElement("span");
+          badge.className = `badge rounded-pill ${stageClass} me-2`;
+          badge.textContent = releaseStage;
+
+          const methodSpan = document.createElement("span");
+          methodSpan.className = `${methodColor} fw-bold me-2`;
+          methodSpan.textContent = method;
+          // 기존 텍스트 제거 후 요소 조립
+          button.textContent = "";
+          button.appendChild(badge);
           h2.appendChild(button);
 
           // accordion-body
