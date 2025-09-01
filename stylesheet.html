@@ -102,10 +102,15 @@
           const releaseStage = row[headers.indexOf("releaseStage")] || "";
           const method = row[headers.indexOf("method")] || "";
           const path   = row[headers.indexOf("path")] || "";
-
-          // accordion-item wrapper
+          const apiDocsUrl     = row[headers.indexOf("apiDocsUrl")] || "";
+          // 주요 열 값들 추출 - end
+          
           const item = document.createElement("div");
           item.className = "accordion-item";
+
+
+
+
 
           // accordion-header
           const headerId = `heading${index}`;
@@ -147,12 +152,33 @@
           const methodSpan = document.createElement("span");
           methodSpan.className = `${methodColor} fw-bold me-2`;
           methodSpan.textContent = method;
+
+          const link = document.createElement("a");
+          link.href = apiDocsUrl;
+          link.target = "_blank";
+          link.className = "ms-2";
+          link.title = "API Docs";
+          link.innerHTML = '🔗';
+          link.style.pointerEvents = "auto";
+          link.tabIndex = -1;
+          link.addEventListener("click", function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            window.open(apiDocsUrl, '_blank');
+          });
+
           // 기존 텍스트 제거 후 요소 조립
           button.textContent = "";
           button.appendChild(badge);
           button.appendChild(methodSpan);
           button.append(document.createTextNode(path));
+          button.appendChild(link);
+
           h2.appendChild(button);
+
+
+
+
 
           // accordion-body
           const collapseDiv = document.createElement("div");
