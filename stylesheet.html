@@ -226,8 +226,9 @@
             const tr = document.createElement("tr");
             const tdKey = document.createElement("td");
             tdKey.textContent = colName;
+            tdKey.className = "fw-bold pe-3";
             const tdVal = document.createElement("td");
-            tdVal.textContent = row[colIndex] !== undefined ? row[colIndex] : "";
+            tdVal.textContent = row[colIndex] !== undefined ? row[colIndex] : "-";
             tr.appendChild(tdKey);
             tr.appendChild(tdVal);
             tbody.appendChild(tr);
