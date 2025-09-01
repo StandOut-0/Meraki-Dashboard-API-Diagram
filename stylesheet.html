@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>시트 자동 로딩 (파라미터 기반)</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  </head>
+<body>
+
+  <!--  상세페이지 - API 프론트 작업을 위한 예시 url
+  http://127.0.0.1:5500/stylesheet.html?sheet=admin
+  -->
+  
+  <main>
+    <div class="px-4 py-5 my-5 text-center"> 
+      <img class="d-block mx-auto mb-4" src="https://www.airquay.com/data/home/20250620110625.png" alt=""> 
+      <h1 class="display-5 fw-bold text-body-emphasis">lorem</h1> 
+      <div class="col-lg-6 mx-auto"> 
+        <p class="lead mb-4">lorem</p>
+         
+        <div class="input-group justify-content-sm-center">
+          <input type="text" id="searchBox" placeholder="검색어 입력" class="form-control">
+          <button type="button" id="searchBtn" class="btn btn-primary btn-lg">lorem</button>
+        </div> 
+      </div> 
+    </div>
+
+    <div>
+      <div class="accordion" id="accordionPanelsStayOpenExample">
+      </div>
+    </div>
+  </main>
+
+  
+  <p id="sheet-title">시트 내용 보기</p>
+  <div id="sheet-content">로딩 중...</div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+  
+<script>
+    function searchAccordion() {
+        const value = document.getElementById("searchBox").value.toLowerCase();
+        const targets = document.querySelectorAll("button[class^='accordion-button']");
+        for (let t of targets) {
+            if (t.textContent.toLowerCase().includes(value)) {
+                t.scrollIntoView({ behavior: "smooth" });
+                t.focus();
+                break;
+            }
+        }
+    }
+
+    document.getElementById("searchBox").addEventListener("keyup", function(e) {
+        if (e.key === "Enter") {
+            searchAccordion();
+        }
+    });
+
+    document.getElementById("searchBtn").addEventListener("click", function() {
+        searchAccordion();
+    });
+</script>
+
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const sheetName = params.get('sheet');
+
+  if (!sheetName) {
+    document.getElementById('sheet-content').textContent = "❗ URL에 ?sheet=시트이름 파라미터가 필요합니다.";
+  } else {
+    document.getElementById('sheet-title').textContent = `시트이름: ${sheetName}`;
+
+    fetch('meraki-api-index-sorted.xlsx') 
+      .then(res => res.arrayBuffer())
+      .then(buffer => {
+        const workbook = XLSX.read(buffer, { type: 'array' });
+
+        if (!workbook.SheetNames.includes(sheetName)) {
+          document.getElementById('sheet-content').textContent = `❗ 시트 "${sheetName}"을(를) 찾을 수 없습니다.`;
+          return;
+        }
+
+        const sheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        // 헤더(첫 행)와 실제 데이터 분리
+        const headers = data[0];
+        const rows = data.slice(1);
+
+        // 아코디언 컨테이너 생성
+        const accordion = document.createElement('div');
+        accordion.className = "accordion";
+        accordion.id = "apiAccordion";
+
+        rows.forEach((row, index) => {
+          if (!row || row.length === 0) return; // 빈 행 skip
+
+          const method = row[headers.indexOf("method")] || "";
+          const path   = row[headers.indexOf("path")] || "";
+
+          // accordion-item wrapper
+          const item = document.createElement("div");
+          item.className = "accordion-item";
+
+          // accordion-header
+          const headerId = `heading${index}`;
+          const collapseId = `collapse${index}`;
+          const h2 = document.createElement("h2");
+          h2.className = "accordion-header";
+          h2.id = headerId;
+
+          const button = document.createElement("button");
+          button.className = "accordion-button collapsed";
+          button.type = "button";
+          button.setAttribute("data-bs-toggle", "collapse");
+          button.setAttribute("data-bs-target", `#${collapseId}`);
+          button.setAttribute("aria-expanded", "false");
+          button.setAttribute("aria-controls", collapseId);
+
+          // method + path
+          button.textContent = `${method} ${path}`;
+
+          h2.appendChild(button);
+
+          // accordion-body
+          const collapseDiv = document.createElement("div");
+          collapseDiv.id = collapseId;
+          collapseDiv.className = "accordion-collapse collapse";
+          collapseDiv.setAttribute("aria-labelledby", headerId);
+          collapseDiv.setAttribute("data-bs-parent", "#apiAccordion");
+
+          const body = document.createElement("div");
+          body.className = "accordion-body";
+
+          // 나머지 열 값들 테이블로 넣기
+          const table = document.createElement("table");
+          table.className = "table table-sm";
+          const tbody = document.createElement("tbody");
+
+          headers.forEach((colName, colIndex) => {
+            if (colName.toLowerCase() === "method" || colName.toLowerCase() === "path") return;
+            const tr = document.createElement("tr");
+            const tdKey = document.createElement("td");
+            tdKey.textContent = colName;
+            const tdVal = document.createElement("td");
+            tdVal.textContent = row[colIndex] !== undefined ? row[colIndex] : "";
+            tr.appendChild(tdKey);
+            tr.appendChild(tdVal);
+            tbody.appendChild(tr);
+          });
+
+          table.appendChild(tbody);
+          body.appendChild(table);
+          collapseDiv.appendChild(body);
+
+          // 아이템 조립
+          item.appendChild(h2);
+          item.appendChild(collapseDiv);
+
+          accordion.appendChild(item);
+        });
+
+        // 기존 sheet-content에 출력
+        const container = document.getElementById('sheet-content');
+        container.innerHTML = '';
+        container.appendChild(accordion);
+      })
+      .catch(err => {
+        document.getElementById('sheet-content').textContent = `❗ 엑셀 파일 로드 오류: ${err}`;
+      });
+  }
+</script>
+
+  
+</body>
+</html>
