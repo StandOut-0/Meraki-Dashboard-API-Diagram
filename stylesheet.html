@@ -129,6 +129,15 @@
           else if (releaseStage.toLowerCase() === "beta") stageClass = "text-bg-warning";
           else if (releaseStage.toLowerCase() === "deprecated") stageClass = "text-bg-danger";
 
+          // method 색상 클래스 결정
+          let methodColor = "";
+          switch (method.toLowerCase()) {
+            case "post": methodColor = "text-warning"; break;   // 오렌지
+            case "put": methodColor = "text-primary"; break;    // 파랑
+            case "delete": methodColor = "text-danger"; break;  // 빨강
+            case "get": methodColor = "text-success"; break;    // 초록
+            default: methodColor = "text-secondary";
+          }
 
           // badge와 method span 생성
           const badge = document.createElement("span");
@@ -141,6 +150,8 @@
           // 기존 텍스트 제거 후 요소 조립
           button.textContent = "";
           button.appendChild(badge);
+          button.appendChild(methodSpan);
+          button.append(document.createTextNode(path));
           h2.appendChild(button);
 
           // accordion-body
